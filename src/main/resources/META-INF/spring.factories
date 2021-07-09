@@ -1,0 +1,6 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.stark.oauth2.boot.AutoConfiguration,\
+com.stark.oauth2.boot.config.AuthServerConfig,\
+com.stark.oauth2.boot.config.JwtConfig,\
+com.stark.oauth2.boot.config.ResourceServerConfig,\
+com.stark.oauth2.boot.config.WebSecurityConfig
