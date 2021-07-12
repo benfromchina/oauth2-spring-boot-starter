@@ -4,11 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.ExpressionUrlAuthorizationConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
@@ -16,6 +16,9 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.R
 import org.springframework.security.oauth2.config.annotation.web.configurers.ResourceServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.expression.OAuth2WebSecurityExpressionHandler;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 import com.stark.oauth2.boot.properties.SecurityProperties;
 import com.stark.oauth2.form.Request;
@@ -48,7 +51,6 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
 		// 无需鉴权的请求
 		ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry authorizeRequests = http.authorizeRequests();
 		List<Request> uriPermitAll = new ArrayList<>();
-		uriPermitAll.addAll(oauth2Requests());
 		uriPermitAll.addAll(swaggerPatterns());
 		if (CollectionUtils.isNotEmpty(securityProperties.getUriPermitAll())) {
 			securityProperties.getUriPermitAll().forEach(request -> {
@@ -65,6 +67,8 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
 			uriPermitAll.forEach(request -> {
 				if (request.getMethod() == null) {
 					authorizeRequests.antMatchers(request.getUri()).permitAll();
+				} else if (StringUtils.isBlank(request.getUri())) {
+					authorizeRequests.antMatchers(request.getMethod()).permitAll();
 				} else {
 					authorizeRequests.antMatchers(request.getMethod(), request.getUri()).permitAll();
 				}
@@ -88,12 +92,16 @@ public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
 	    return expressionHandler;
 	}
 	
-	private List<Request> oauth2Requests() {
-		List<Request> list = new ArrayList<>();
-		list.add(Request.of(HttpMethod.POST, "/oauth/token"));
-		list.add(Request.of("/oauth/authorize"));
-		list.add(Request.of(HttpMethod.GET, "/oauth/check_token"));
-		return list;
+	@Bean
+	public CorsFilter corsFilter() {
+		CorsConfiguration config = new CorsConfiguration();
+		config.setAllowCredentials(true);
+		config.addAllowedOrigin("*");
+		config.addAllowedHeader("*");
+		config.addAllowedMethod("*");
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+		return new CorsFilter(source);
 	}
 	
 	private List<Request> swaggerPatterns() {
